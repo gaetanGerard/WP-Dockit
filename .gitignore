@@ -1,0 +1,13 @@
+# Ignore tout par défaut
+*
+
+# Autoriser certains fichiers à la racine
+!.gitignore
+!README.md
+!docker-compose.base.yml
+!Makefile
+
+# Autoriser tout dans scripts sauf reserved_ports.env
+!scripts/
+!scripts/**
+scripts/reserved_ports.env
