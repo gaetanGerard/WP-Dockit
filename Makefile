@@ -1,7 +1,6 @@
-# Utilitaires
 SHELL := /bin/bash
 
-.PHONY: init new-site cleanup
+.PHONY: init new-site cleanup remove-site
 
 init:
 	@bash scripts/init.sh
@@ -11,3 +10,6 @@ new-site:
 
 cleanup:
 	@bash scripts/cleanup.sh
+
+remove-site:
+	@bash scripts/remove-site.sh

@@ -1,30 +1,30 @@
 #!/bin/bash
 
-# Script d'initialisation du projet
+# Script to initialize the Docker environment for the project
 
 RESERVED_PORTS_FILE="./scripts/reserved_ports.env"
 TEMPLATE_FILE="./scripts/template.reserved_ports.env"
 
-# Vérifie si reserved_ports.env existe, sinon le crée à partir du template ou avec une valeur par défaut
+# Check if reserved_ports.env file exists if not create it from template and if template not exists create it with default port
 if [ ! -f "$RESERVED_PORTS_FILE" ]; then
-  echo "Fichier reserved_ports.env introuvable."
+  echo "File reserved_ports.env not found."
   if [ -f "$TEMPLATE_FILE" ]; then
-    echo "📄 Copie de template.reserved_ports.env vers reserved_ports.env"
+    echo "📄 Copying template.reserved_ports.env to reserved_ports.env"
     cp "$TEMPLATE_FILE" "$RESERVED_PORTS_FILE"
   else
-    echo "⚠️ Aucun template trouvé. Création d’un fichier reserved_ports.env avec 8025 comme port réservé par défaut."
+    echo "⚠️ No template found. Creating reserved_ports.env file with 8025 as default reserved port."
     echo 'RESERVED_PORTS="8025"' > "$RESERVED_PORTS_FILE"
   fi
 fi
 
-# Crée le réseau Docker s’il n'existe pas
+# Add network if it doesn't exist
 if ! docker network ls | grep -q "shared_net"; then
-  echo "🔌 Création du réseau Docker 'shared_net'..."
+  echo "🔌 Creating Docker network 'shared_net'..."
   docker network create shared_net
 else
-  echo "🔁 Le réseau 'shared_net' existe déjà."
+  echo "🔁 Docker network 'shared_net' already exists."
 fi
 
-# Démarre les services de base
-echo "🚀 Lancement des services de base..."
+# Start the base services
+echo "🚀 Starting base services..."
 docker compose -f docker-compose.base.yml up -d

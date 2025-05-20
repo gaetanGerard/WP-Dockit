@@ -8,7 +8,7 @@ if [ -f "$RESERVED_PORTS_FILE" ]; then
   source "$RESERVED_PORTS_FILE"
   RESERVED_PORTS=($RESERVED_PORTS) # transforme en tableau
 else
-  echo "Fichier $RESERVED_PORTS_FILE introuvable. Création d'un fichier vide."
+  echo "File $RESERVED_PORTS_FILE not found. Creating an empty file."
   echo 'RESERVED_PORTS=""' > "$RESERVED_PORTS_FILE"
   RESERVED_PORTS=()
 fi
@@ -49,30 +49,30 @@ update_reserved_ports() {
   echo "RESERVED_PORTS=\"${RESERVED_PORTS[*]}\"" > "$RESERVED_PORTS_FILE"
 }
 
-echo "🔧 Création d'un nouveau projet WordPress"
+echo "🔧 Creating a new WordPress project"
 
-read -p "Nom du dossier (ex: mon-site): " SITE_DIR
-read -p "Nom du site (ex: mon_site): " SITE_NAME
-read -p "Nom de la base de données: " DB_NAME
-read -p "Nom de l'utilisateur DB: " DB_USER
-read -p "Mot de passe DB: " DB_PASSWORD
+read -p "Folder name (e.g., my-site): " SITE_DIR
+read -p "Site name (e.g., my_site): " SITE_NAME
+read -p "Database name: " DB_NAME
+read -p "DB user name: " DB_USER
+read -p "DB password: " DB_PASSWORD
 
 # Demande du port avec logique de fallback automatique
 while true; do
-  read -p "Port WordPress désiré (laisser vide pour auto): " WP_PORT
+  read -p "Desired WordPress port (leave blank for auto): " WP_PORT
 
   if [[ -z "$WP_PORT" ]]; then
     WP_PORT=$(find_first_free_port)
-    echo "🧠 Port automatique sélectionné : $WP_PORT"
+    echo "🧠 Auto-selected port: $WP_PORT"
     break
   elif ! [[ "$WP_PORT" =~ ^[0-9]+$ ]]; then
-    echo "❌ Le port doit être un nombre."
+    echo "❌ The port must be a number"
     continue
   elif is_port_in_use_or_reserved "$WP_PORT"; then
     SUGGESTED_PORT=$(find_first_free_port)
-    echo "❌ Le port $WP_PORT est déjà utilisé ou réservé. Exemple libre : $SUGGESTED_PORT"
+    echo "❌ Port $WP_PORT is already in use or reserved. Available example: $SUGGESTED_PORT"
   else
-    echo "✅ Le port $WP_PORT est libre."
+    echo "✅ Port $WP_PORT is free."
     break
   fi
 done
@@ -130,4 +130,4 @@ networks:
     external: true
 EOF
 
-echo "✅ Le projet '$SITE_DIR' a été initialisé avec succès (port $WP_PORT)."
+echo "✅ Project '$SITE_DIR' has been successfully initialized (port $WP_PORT)."

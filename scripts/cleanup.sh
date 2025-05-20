@@ -1,24 +1,24 @@
 #!/bin/bash
 
-# Stoppe les conteneurs WordPress
-echo "🔍 Recherche des conteneurs WordPress à arrêter..."
+# Stop Wordpress containers
+echo "🔍 Looking for running WordPress containers to stop...."
 wordpress_containers=$(docker ps -q --filter "name=wordpress-")
 
 if [ -n "$wordpress_containers" ]; then
-  echo "🛑 Arrêt des conteneurs WordPress..."
+  echo "🛑 Stopping WordPress containers..."
   docker stop $wordpress_containers
 else
-  echo "✅ Aucun conteneur WordPress en cours d'exécution."
+  echo "✅ No running WordPress containers found."
 fi
 
-# Stoppe les conteneurs de base (db, phpmyadmin, mailhog)
-echo "🛑 Arrêt des services de base..."
+# Stop services containers (db, phpmyadmin, mailhog)
+echo "🛑 Stopping base services..."
 docker compose -f docker-compose.base.yml down
 
-# Supprime le réseau partagé
+# Remove network
 if docker network ls | grep -q "shared_net"; then
-  echo "🧹 Suppression du réseau 'shared_net'..."
+  echo "🧹 Removing 'shared_net' Docker network..."
   docker network rm shared_net
 else
-  echo "✅ Le réseau 'shared_net' n'existe pas ou est déjà supprimé."
+  echo "✅ 'shared_net' network does not exist or has already been removed."
 fi
