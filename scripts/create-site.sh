@@ -1,19 +1,38 @@
 #!/bin/bash
 
-# Path to the reserved ports file
 RESERVED_PORTS_FILE="./scripts/reserved_ports.env"
+SITES_PARENT_DIR="."
 
-# Load the reserved ports from the file
-if [ -f "$RESERVED_PORTS_FILE" ]; then
-  source "$RESERVED_PORTS_FILE"
-  RESERVED_PORTS=($RESERVED_PORTS) # Convert string to array
-else
-  echo "File $RESERVED_PORTS_FILE not found. Creating an empty file."
-  echo 'RESERVED_PORTS=""' > "$RESERVED_PORTS_FILE"
-  RESERVED_PORTS=()
+# Function to regenerate reserved ports
+regenerate_reserved_ports() {
+  echo "⚠️ $RESERVED_PORTS_FILE not found. Regenerating reserved ports from existing sites..."
+  PORTS=()
+  for env_file in "$SITES_PARENT_DIR"/*/.env; do
+    if [ -f "$env_file" ]; then
+      # load the env file to get the WP_PORT
+      WP_PORT_TMP=$(grep '^WP_PORT=' "$env_file" | cut -d '=' -f2)
+      if [[ ! -z "$WP_PORT_TMP" ]]; then
+        PORTS+=("$WP_PORT_TMP")
+      fi
+    fi
+  done
+
+  # remove duplicates
+  UNIQUE_PORTS=($(echo "${PORTS[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+  echo "RESERVED_PORTS=\"${UNIQUE_PORTS[*]}\"" > "$RESERVED_PORTS_FILE"
+  echo "✅ Regenerated reserved_ports.env with ports: ${UNIQUE_PORTS[*]}"
+}
+
+# check if reserved_ports.env exists
+if [ ! -f "$RESERVED_PORTS_FILE" ]; then
+  regenerate_reserved_ports
 fi
 
-# Check if a port is in use or reserved
+# load the reserved ports from the file
+source "$RESERVED_PORTS_FILE"
+RESERVED_PORTS=($RESERVED_PORTS) # string to array
+
+# check if the reserved ports are empty
 is_port_in_use_or_reserved() {
   local port=$1
   if lsof -iTCP:$port -sTCP:LISTEN -t >/dev/null 2>&1; then
@@ -27,7 +46,7 @@ is_port_in_use_or_reserved() {
   return 1
 }
 
-# Find the first free port starting from 8000
+# find the first free port starting from 8000
 find_first_free_port() {
   local port=8000
   while is_port_in_use_or_reserved $port; do
@@ -36,7 +55,7 @@ find_first_free_port() {
   echo $port
 }
 
-# Update the reserved ports file
+# update the reserved ports file
 update_reserved_ports() {
   local new_port=$1
   if [[ ! " ${RESERVED_PORTS[*]} " =~ " $new_port " ]]; then
@@ -53,7 +72,6 @@ read -p "Database name: " DB_NAME
 read -p "DB user name: " DB_USER
 read -p "DB password: " DB_PASSWORD
 
-# add automatic fallback for the port
 while true; do
   read -p "Desired WordPress port (leave blank for auto): " WP_PORT
 
@@ -73,18 +91,14 @@ while true; do
   fi
 done
 
-# Add the port to the reserved ports file
 update_reserved_ports "$WP_PORT"
 
-# Retrieve the user and group IDs
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 
-# Create the site directory
 mkdir -p "$SITE_DIR/wordpress"
 chown -R "$USER_ID:$GROUP_ID" "$SITE_DIR/wordpress"
 
-# Generate the .env file
 cat > "$SITE_DIR/.env" <<EOF
 SITE_NAME=$SITE_NAME
 DB_NAME=$DB_NAME
@@ -95,7 +109,6 @@ USER_ID=$USER_ID
 GROUP_ID=$GROUP_ID
 EOF
 
-# Generate the docker-compose.yml file
 cat > "$SITE_DIR/docker-compose.yml" <<EOF
 services:
   wordpress:
