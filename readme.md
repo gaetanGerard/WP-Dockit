@@ -215,3 +215,15 @@ scripts/template.reserved_ports.env
 This project is called **WP-Dockit** — your personal CLI toolbox to dockerize and manage WordPress locally with zero hassle.
 
 Crafted with ❤️ by Gaétan Gérard.
+
+---
+
+## ⚠️ License Notice
+
+This project is currently released under the **Creative Commons BY-NC-SA 4.0** license, which allows non-commercial use, modification, and redistribution of the code.
+
+**However, I reserve the right to change the license in the future**, especially if the project evolves into a version requiring more resources, maintenance, or support.
+
+In such a case, a future version may be released under a different license, possibly commercial, to better reflect the needs related to development and distribution.
+
+Thank you for your understanding and support!

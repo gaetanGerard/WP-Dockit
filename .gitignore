@@ -6,6 +6,7 @@
 !README.md
 !docker-compose.base.yml
 !Makefile
+!LICENSE.md
 
 # Autoriser tout dans scripts sauf reserved_ports.env
 !scripts/
