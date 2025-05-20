@@ -28,11 +28,17 @@ fi
 RESERVED_FILE="./scripts/reserved_ports.env"
 
 if [ -f "$RESERVED_FILE" ]; then
-  OLD_CONTENT=$(<"$RESERVED_FILE")
-  UPDATED_CONTENT=$(echo "$OLD_CONTENT" | sed "s/\b$WP_PORT\b//g" | sed 's/  */ /g' | sed 's/^RESERVED_PORTS="\s*//;s/\s*"$//')
-  # remove trailing spaces
-  UPDATED_CONTENT=$(echo "$UPDATED_CONTENT" | xargs)
-  echo "RESERVED_PORTS=\"$UPDATED_CONTENT\"" > "$RESERVED_FILE"
+  source "$RESERVED_FILE"
+  RESERVED_ARRAY=($RESERVED_PORTS)
+  NEW_RESERVED=()
+
+  for port in "${RESERVED_ARRAY[@]}"; do
+    if [[ "$port" != "$WP_PORT" ]]; then
+      NEW_RESERVED+=("$port")
+    fi
+  done
+
+  echo "RESERVED_PORTS=\"${NEW_RESERVED[*]}\"" > "$RESERVED_FILE"
   echo "🧹 Port $WP_PORT removed from reserved_ports.env"
 fi
 
