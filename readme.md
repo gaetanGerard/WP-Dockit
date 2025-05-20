@@ -1,7 +1,7 @@
 # 🐳 WP-Dockit – Local WordPress Environment with Docker
 
-**WP-Dockit** is a CLI-powered solution to spin up and manage multiple WordPress environments locally using Docker.
-It features **automatic port assignment**, a **shared Docker network**, and clean **multi-project management** through simple scripts and a `Makefile`.
+**WP-Dockit** is a full-featured CLI-powered solution to spin up and manage multiple isolated WordPress environments locally using Docker.
+Designed for developers and tinkerers, it offers **smart port handling**, **project-level control**, and **easy lifecycle management** of local WordPress sites.
 
 ---
 
@@ -9,19 +9,27 @@ It features **automatic port assignment**, a **shared Docker network**, and clea
 
 - 🔧 Automatic setup with `Makefile` and Bash scripts
 - 🌐 Shared Docker network for isolated WordPress environments
-- 🔁 Port conflict prevention with smart detection and reserved port list
+- 🔁 Port conflict prevention with smart detection
+- 🚫 System port protection via `template.reserved_ports.env`
 - 📂 Self-contained WordPress instances per folder (`docker-compose.yml` + `.env`)
-- 🧹 Cleanup tools to stop and remove all WordPress containers
+- ⚙️ Custom `.env` generation per site with interactive prompts
+- 🚦 Smart startup script with port checking and auto-correction
+- 🔄 Auto-regeneration of reserved ports from active containers
+- 🧹 Global cleanup for all WordPress containers and base services
+- ❌ Per-project removal tool (`remove-site.sh`)
+- 🧪 Port validation before container launch
+- 📊 Optional phpMyAdmin for DB access and MailHog for mail testing
+- ✅ Run multiple WordPress instances in parallel with safe isolation
 
 ---
 
 ## 🖥️ System Requirements
 
-| OS        | Requirements                                                                 |
-|-----------|-------------------------------------------------------------------------------|
-| **Linux** | Docker, Bash                                                                 |
-| **macOS** | Docker Desktop, Bash (pre-installed)                                         |
-| **Windows** | Docker Desktop + WSL2 + Git Bash (included with Git for Windows or via VSCode) |
+| OS         | Requirements                                                                 |
+|------------|-------------------------------------------------------------------------------|
+| **Linux**  | Docker, Bash                                                                 |
+| **macOS**  | Docker Desktop, Bash (pre-installed)                                         |
+| **Windows**| Docker Desktop + WSL2 + Git Bash (from Git for Windows or via VSCode)        |
 
 > ⚠️ You **must be able to run Bash scripts**. On Windows, use **Git Bash** or the **WSL terminal**.
 
@@ -29,16 +37,19 @@ It features **automatic port assignment**, a **shared Docker network**, and clea
 
 ## 📁 Project Structure
 
-
-
 ```bash
 scripts/
-├── init.sh # Creates Docker network and starts core services (DB, MailHog, phpMyAdmin)
-├── create-site.sh # Interactive script to scaffold a new WordPress project
-├── cleanup.sh # Stops and cleans up all WordPress containers and shared services
-├── reserved_ports.env # List of reserved ports (auto-managed)
-Makefile # Wrapper for all commands
-docker-compose.base.yml # Core services (MySQL, MailHog, phpMyAdmin)
+├── init.sh                     # Creates Docker network and starts core services (DB, MailHog, phpMyAdmin)
+├── create-site.sh              # Interactive script to scaffold a new WordPress project
+├── start-site.sh               # Safe startup script with port verification and service checks
+├── stop-wp-site.sh             # Stops a running WordPress project from its folder
+├── cleanup.sh                  # Stops and cleans up all WordPress containers and shared services
+├── remove-site.sh              # Fully deletes a WordPress project and unregisters its port
+├── regenerate_reserved_ports.sh# Rebuilds reserved_ports.env from active containers
+├── reserved_ports.env          # Auto-managed list of reserved ports
+├── template.reserved_ports.env # Static list of system/service ports to never assign
+Makefile                        # Wrapper for all common commands
+docker-compose.base.yml         # Shared services (MySQL, phpMyAdmin, MailHog)
 ```
 
 ---
@@ -47,96 +58,160 @@ docker-compose.base.yml # Core services (MySQL, MailHog, phpMyAdmin)
 
 ### 1. Initialize Shared Network & Base Services
 
-This command creates the `shared_net` Docker network (if missing) and starts base services like MySQL, phpMyAdmin, and MailHog:
-
+Create the shared Docker network and boot up MySQL, MailHog, and phpMyAdmin:
 
 ```bash
-   make init
+make init
 ```
 
 ### 2. Create a New WordPress Site
-Launch an interactive setup to configure a new WordPress site:
+
+Launch an interactive setup to create a new WordPress project folder:
 
 ```bash
-   make new-site
+make new-site
 ```
 
-🛠 What it does:
-- Asks for:
-   - Site directory name `SITE_DIR`
-   - WordPress site name `SITE_NAME`
-   - DB credentials `DB_NAME` / `DB_USER` / `DB_PASSWORD`
-   - If no Port selected, automatically finds a free port (starting at `8000`)
-- Avoids:
-   - Ports already in use
-   - Ports listed in `scripts/reserved_ports.env`
+🛠 Includes:
+- Prompts for site folder name, site name, DB name/user/password
+- Suggests or auto-assigns a free port ≥ 8000
+- Checks for:
+  - Port conflicts (running containers)
+  - Reserved ports in `reserved_ports.env`
+  - Critical ports from `template.reserved_ports.env`
 - Generates:
-   - `.env` with variables
-   - `docker-compose.yml` for the new WordPress instance
-Updates `reserved_ports.env` so ports aren’t reused in the future
+  - `.env` file with full project configuration
+  - `docker-compose.yml` based on templates
+- Adds chosen port to `reserved_ports.env`
 
-### 3. Start a WordPress Site
+### 3. Start a WordPress Site Safely
 
-Go to the created folder and launch Docker:
-
-```bash
-   cd my-site
-   docker compose up -d
-```
-Visit your new site at `http://localhost:<assigned-port>`
-
-### 4. Cleanup All WordPress Sites & Services
-
-Stops all WordPress containers and core services, then removes the shared network:
+Use the safe-start script to validate and launch a WordPress project:
 
 ```bash
-   make cleanup
+make start-site
 ```
 
-What it does:
+🧠 What it does:
+- Ensures the port from `.env` is not in use or reserved
+- If needed, proposes a new port and updates `.env`
+- Starts core services if not already up
+- Starts the WordPress container via Docker Compose
 
-- Stops all containers starting with `wordpress-`
-- Stops services from `docker-compose.base.yml` (db, phpMyAdmin, MailHog)
-- Removes the Docker network `shared_net`
+✅ You can run this command for run multiple sites in parallel (each site is separate by a comma e.g. site-1,site-2).
+
+### 4. Stop a Specific WordPress Site
+
+Navigate to the project directory and run:
+
+```bash
+make stop-site
+```
+
+This stops only the targeted WordPress instance without touching others or core services.
+
+
+✅ You can run this command for stop multiple sites (each site is separate by a comma e.g. site-1,site-2 or all to stop all wordpress container currently running).
+
+### 5. Remove a WordPress Project
+
+Deletes an entire WordPress project safely:
+
+```bash
+make remove-site
+```
+
+🧨 Includes:
+- Prompts for confirmation
+- Stops and removes containers
+- Deletes folder contents
+- Removes port from `reserved_ports.env`
+
+### 6. Cleanup All WordPress Sites & Services
+
+Stop **everything**, including core services and all site containers:
+
+```bash
+make cleanup
+```
+
+🧹 This:
+- Stops all `wordpress-*` containers
+- Stops MailHog, MySQL, phpMyAdmin
+- Removes the shared Docker network
+
+### 7. Regenerate the Reserved Port List
+
+Rebuild the `reserved_ports.env` file based on currently running containers and the `template.reserved_ports` if its exist (otherwise it will create it and you should add the port that you want to lock there):
+
+```bash
+make regenerate-ports
+```
 
 ---
 
-## 🛠 Available Makefile Commands
-```bash
-   init:
-	   @bash scripts/init.sh
+## 🛠 Makefile Commands
 
-   new-site:
-	   @bash scripts/create-site.sh
+```make
+init:                # Initialize shared network & core services
+	@bash scripts/init.sh
 
-   cleanup:
-	   @bash scripts/cleanup.sh
+new-site:            # Create new WordPress project interactively
+	@bash scripts/create-site.sh
+
+start-site:          # Start a WordPress project safely (port check)
+	@bash scripts/start-site.sh
+
+stop-site:           # Stop current WordPress project (from its folder)
+	@bash scripts/stop-wp-site.sh
+
+remove-site:         # Delete a WordPress project completely
+	@bash scripts/remove-site.sh
+
+cleanup:             # Stop and remove ALL WordPress containers + shared services
+	@bash scripts/cleanup.sh
+
+regenerate-ports:    # Rebuild reserved_ports.env dynamically
+	@bash scripts/regenerate_reserved_ports.sh
 ```
 
 ---
 
 ## 💡 Tip: Reserve Specific Ports
-If you want to prevent specific ports from being auto-assigned to new WordPress instances:
 
-Edit the file:
-```bash
-   scripts/reserved_ports.env
-```
-
-Example:
+To avoid assigning specific ports when you create a new site you can edit:
 
 ```bash
-   RESERVED_PORTS="8000 8001 8025"
+scripts/template.reserved_ports.env
 ```
-> Port 8025 is already reserved by default for MailHog and will be ignored by the system.
+
+> ⚠️ I recommend to not update immediately the reserved_ports.env instead you should update the template.reserved_ports.env and run `make regenerate-ports` in order to keep things clear.
+
+***The RESERVED_PORTS variable present in the file reserved_ports.env will change everytime you add a project so you should keep away the port that your service are using in template.reserved_ports.env***
+
+> Note: MailHog uses port 8025 by default and is automatically excluded from assignments.
 
 ---
 
 ## 📚 Notes
-- You can manage as many WordPress projects as you want — each one lives in its own folder.
-- You can run several WordPress instances in parallel as long as ports don’t conflict.
-- Ensure `docker compose` is available (`Docker Desktop` installs it by default).
+
+- You can host **multiple isolated WordPress sites** in parallel — each in its own folder.
+- No port conflicts: each instance runs on a unique localhost port.
+- phpMyAdmin runs at `http://localhost:8080`, MailHog at `http://localhost:8025`.
+- All config is per-project and easy to back up or version.
+
+---
+
+## 🔄 Futur Improvements
+
+- Add a command to add the possibility to add an hostname to the host file to use that instead of the ip address
+- Add in the remove-site command the declaration in the host file
+- More to come
+
+---
 
 ## 🧠 Name & Credits
-This project is called WP-Dockit — your personal tool to dockerize WordPress efficiently.
-Maintained with ❤️ by Gaétan Gérard.
+
+This project is called **WP-Dockit** — your personal CLI toolbox to dockerize and manage WordPress locally with zero hassle.
+
+Crafted with ❤️ by Gaétan Gérard.
